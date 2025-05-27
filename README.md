@@ -1,4 +1,3 @@
-Claro! Com base no conteúdo do seu repositório [Projetos-de-Desenvolvimento-Aplicado](https://github.com/AlonsoNeto01/Projetos-de-Desenvolvimento-Aplicado/tree/main), aqui está uma sugestão de arquivo `README.md` para documentar seus projetos de forma clara e profissional:
 
 ---
 
