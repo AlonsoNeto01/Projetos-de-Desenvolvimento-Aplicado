@@ -1,32 +1,31 @@
-import gspread # Biblioteca para acessar e manipular planilhas do Google Sheets
-import json # Usada para ler e manipular dados em formato JSON (como as credenciais)
-import os # Permite acessar variáveis de ambiente (como os secrets no Streamlit)
-from oauth2client.service_account import ServiceAccountCredentials 
-# Importa a classe que permite autenticação via conta de serviço com credenciais JSON
+import gspread
+import os
+import json
+from google.oauth2.service_account import Credentials
 
-# Conecta à API do Google usando o conteúdo do secret
 def get_client():
-    scope = [
-        "https://spreadsheets.google.com/feeds",
+    creds_json = os.getenv("GOOGLE_SHEETS_CREDENTIALS_JSON")
+    if not creds_json:
+        raise ValueError("⚠️ Erro: Credenciais não encontradas! Verifique os secrets no Streamlit.")
+
+    creds_dict = json.loads(creds_json)
+
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
     ]
-    creds_dict = json.loads(os.getenv("GOOGLE_SHEETS_CREDENTIALS_JSON"))
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    return gspread.authorize(creds)
 
-# Acessa a planilha e retorna a primeira aba
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    client = gspread.authorize(creds)
+    return client
+
 def get_sheet():
     client = get_client()
-    sheet = client.open("basecontatos").sheet1  # Nome exato da planilha criada!!!!
+    sheet = client.open("Contatos").sheet1  # Nome da planilha precisa ser exatamente igual
     return sheet
 
-# Adiciona um novo contato à planilha
-def add_contato(nome, email):
-    sheet = get_sheet()
-    sheet.append_row([nome, email])
-
-# Lista todos os contatos da planilha
 def listar_contatos():
     sheet = get_sheet()
-    rows = sheet.get_all_records()  # Retorna como lista de dicionários
-    return rows
+    dados = sheet.get_all_records()
+    return dados
+
