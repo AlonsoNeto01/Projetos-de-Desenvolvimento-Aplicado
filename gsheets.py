@@ -1,32 +1,52 @@
-import gspread # Biblioteca para acessar e manipular planilhas do Google Sheets
-import json # Usada para ler e manipular dados em formato JSON (como as credenciais)
-import os # Permite acessar variáveis de ambiente (como os secrets no Streamlit)
-from oauth2client.service_account import ServiceAccountCredentials 
-# Importa a classe que permite autenticação via conta de serviço com credenciais JSON
+import gspread
+import json
+import os
+from google.oauth2.service_account import Credentials
+import streamlit as st  # necessário para mostrar erros no Streamlit
 
-# Conecta à API do Google usando o conteúdo do secret
 def get_client():
     scope = [
-        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
     ]
-    creds_dict = json.loads(os.getenv("GOOGLE_SHEETS_CREDENTIALS_JSON"))
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    
+    if 'GOOGLE_SHEETS_CREDENTIALS_JSON' in os.environ:
+        creds_dict = json.loads(os.getenv("GOOGLE_SHEETS_CREDENTIALS_JSON"))
+    else:
+        with open('credentials.json') as f:
+            creds_dict = json.load(f)
+    
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
     return gspread.authorize(creds)
 
-# Acessa a planilha e retorna a primeira aba
 def get_sheet():
-    client = get_client()
-    sheet = client.open("basecontatos").sheet1  # Nome exato da planilha criada!!!!
-    return sheet
+    try:
+        client = get_client()
+        sheet = client.open("basecontatos").sheet1
+        # Garante que o cabeçalho está lá (opcional)
+        if not sheet.row_values(1):
+            sheet.append_row(["nome", "email"])
+        return sheet
+    except Exception as e:
+        st.error(f"Erro ao acessar a planilha: {e}")
+        return None
 
-# Adiciona um novo contato à planilha
 def add_contato(nome, email):
     sheet = get_sheet()
-    sheet.append_row([nome, email])
+    if sheet:
+        contatos = listar_contatos()
+        for contato in contatos:
+            if contato.get("nome") == nome and contato.get("email") == email:
+                return False  # Já existe
+        sheet.append_row([nome, email])
+        return True
+    return False
 
-# Lista todos os contatos da planilha
 def listar_contatos():
     sheet = get_sheet()
-    rows = sheet.get_all_records()  # Retorna como lista de dicionários
-    return rows
+    if sheet:
+        try:
+            return sheet.get_all_records()
+        except Exception:
+            return []
+    return []
